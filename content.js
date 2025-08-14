@@ -1,43 +1,39 @@
-function hideFeedIfHome() {
-  if (window.location.search.includes('feed=home')) {
-    const mainContent = document.querySelector('.main.w-full.min-w-0');
-    if (mainContent) mainContent.style.display = 'none';
-
-    const popularLink = document.querySelector('a[href="/r/popular/"]');
-    if (popularLink) popularLink.style.display = 'none';
-  }
+function hideFeed() {
+  const feed = document.querySelector('.masonryContainer');
+  if (feed) feed.style.display = 'none';
 }
 
 function showFeed() {
-  const mainContent = document.querySelector('.main.w-full.min-w-0');
-  if (mainContent) mainContent.style.display = '';
-
-  const popularLink = document.querySelector('a[href="/r/popular/"]');
-  if (popularLink) popularLink.style.display = '';
+  const feed = document.querySelector('.masonryContainer');
+  if (feed) feed.style.display = '';
 }
 
-// Listen for popup toggle
+// Runs initially when extension is loaded on the page
+chrome.storage.sync.get(['hideHome'], (data) => {
+  if (data.hideHome) hideFeed();
+});
+
+// Listen for toggle messages from popup.js
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.action === "toggleHide") {
     chrome.storage.sync.get(['hideHome'], (data) => {
-      if (data.hideHome) hideFeedIfHome();
-      else showFeed();
+      if (data.hideHome) {
+        hideFeed();
+      } else {
+        showFeed();
+      }
     });
   }
 });
 
-// Initial run on page load + SPA navigation
-chrome.storage.sync.get(['hideHome'], (data) => {
-  if (data.hideHome) {
-    hideFeedIfHome();
-
-    let lastUrl = location.href;
-    new MutationObserver(() => {
-      const currentUrl = location.href;
-      if (currentUrl !== lastUrl) {
-        lastUrl = currentUrl;
-        hideFeedIfHome();
-      }
-    }).observe(document, { subtree: true, childList: true });
+// Handle Pinterest's dynamic navigation (single-page app)
+let lastUrl = location.href;
+new MutationObserver(() => {
+  const currentUrl = location.href;
+  if (currentUrl !== lastUrl) {
+    lastUrl = currentUrl;
+    chrome.storage.sync.get(['hideHome'], (data) => {
+      if (data.hideHome) hideFeed();
+    });
   }
-});
+}).observe(document, { subtree: true, childList: true });
